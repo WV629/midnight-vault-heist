@@ -5,7 +5,7 @@
 // library. It runs twice in the grader and both runs must write the same bytes,
 // so it does nothing time- or environment-dependent: a straight copy plus a
 // dossier built from the copied files.
-import { cpSync, existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildDossier } from './vendor/makefun-game.ts';
@@ -23,8 +23,13 @@ if (!existsSync(shotsDir)) {
 }
 
 // Start from a clean directory so a second run writes identical bytes.
-rmSync(outDir, { recursive: true, force: true });
+// NOTE: never remove outDir itself — in the grader /output is owned by root
+// and this program runs as an unprivileged user, so rmdir(outDir) fails with
+// EPERM. Only its contents are cleared; the directory itself is kept.
 mkdirSync(outDir, { recursive: true });
+for (const entry of readdirSync(outDir)) {
+  rmSync(join(outDir, entry), { recursive: true, force: true });
+}
 cpSync(gameDir, join(outDir, 'game'), { recursive: true });
 cpSync(shotsDir, join(outDir, 'screenshots'), { recursive: true });
 
